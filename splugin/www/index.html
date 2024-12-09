@@ -91,6 +91,29 @@
         font-size: 18px;
         color: #555;
       }
+      .section {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      .form-group {
+        margin-bottom: 10px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+      }
     </style>
   </head>
   <body>
@@ -107,6 +130,20 @@
     </button>
     <button id="disconnectBtn" onclick="disconnect()" disabled>断开连接</button>
 
+    <div id="corsSection" class="section">
+      <h3>CORS 设置</h3>
+      <div class="form-group">
+        <label for="usernameInput">用户名:</label>
+        <input type="text" id="usernameInput" placeholder="请输入用户名" />
+      </div>
+      <div class="form-group">
+        <label for="passwordInput">密码:</label>
+        <input type="password" id="passwordInput" placeholder="请输入密码" />
+      </div>
+      <button onclick="setCorsAccount()">设置CORS账号</button>
+      <button onclick="getCorsAccount()">获取CORS账号</button>
+    </div>
+
     <div id="result"></div>
 
     <script type="text/javascript" src="cordova.js"></script>
@@ -119,6 +156,7 @@
 
       function onDeviceReady() {
         appendToResult("设备准备就绪");
+        console.log("设备准备就绪");
         updateScanStatus();
       }
 
@@ -138,8 +176,9 @@
       function appendToResult(message) {
         const resultDiv = document.getElementById("result");
         const timestamp = new Date().toLocaleTimeString();
-        resultDiv.innerHTML =
-          `[${timestamp}] ${message}<br>` + resultDiv.innerHTML;
+        const logMessage = `[${timestamp}] ${message}`;
+        console.log(logMessage);
+        resultDiv.innerHTML = logMessage + "<br>" + resultDiv.innerHTML;
       }
 
       function updateDeviceList(device) {
@@ -265,6 +304,38 @@
           },
           function (error) {
             appendToResult(`断开连接错误: ${error}`);
+          }
+        );
+      }
+
+      function setCorsAccount() {
+        const username = document.getElementById("usernameInput").value;
+        const password = document.getElementById("passwordInput").value;
+
+        if (!username || !password) {
+          appendToResult("用户名或密码不能为空");
+          return;
+        }
+
+        window.plugins.hxtBdPlugin.setCorsAccount(
+          username,
+          password,
+          function (result) {
+            appendToResult(`CORS 账号设置成功: ${JSON.stringify(result)}`);
+          },
+          function (error) {
+            appendToResult(`CORS 账号设置失败: ${error}`);
+          }
+        );
+      }
+
+      function getCorsAccount() {
+        window.plugins.hxtBdPlugin.getCorsAccount(
+          function (result) {
+            appendToResult(`CORS 账号信息: ${JSON.stringify(result)}`);
+          },
+          function (error) {
+            appendToResult(`获取 CORS 账号失败: ${error}`);
           }
         );
       }
