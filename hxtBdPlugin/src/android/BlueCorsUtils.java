@@ -27,10 +27,10 @@ public class BlueCorsUtils {
     private boolean isConnected = false;
     private String connectedDeviceName = null;
     private Set<String> discoveredDevices = new HashSet<>();
-    private static final String CORS_SERVER = "10.10.16.32";
-    private static final String CORS_PORT = "2101";
-    private static final String CORS_FORMAT = "RTCM32_DBD";
-    private static final String CORS_INTERVAL = "1";
+    private static final String CORS_SERVER = "";
+    private static final String CORS_PORT = "";
+    private static final String CORS_FORMAT = "";
+    private static final String CORS_INTERVAL = "";
 
     public BlueCorsUtils(Activity activity) {
         try {
