@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>蓝牙设备连接演示</title>
+    <style>
+      body {
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+      .device-list {
+        margin: 10px 0;
+        padding: 0;
+      }
+      .device-item {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 5px 0;
+        padding: 10px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .device-item:hover {
+        background-color: #e9ecef;
+      }
+      .device-item.selected {
+        background-color: #cce5ff;
+        border-color: #b8daff;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        margin: 5px 0;
+      }
+      button:disabled {
+        background-color: #ccc;
+      }
+      #result {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        min-height: 100px;
+        max-height: 300px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        font-family: monospace;
+      }
+      .scan-status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        text-align: center;
+        font-weight: bold;
+      }
+      .scanning {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .not-scanning {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="scanStatus" class="scan-status not-scanning">未开始扫描</div>
+
+    <button id="startScanBtn" onclick="startScan()">开始扫描</button>
+    <button id="stopScanBtn" onclick="stopScan()" disabled>停止扫描</button>
+
+    <h3>发现的设备：</h3>
+    <div id="deviceList" class="device-list"></div>
+
+    <button id="connectBtn" onclick="connectSelected()" disabled>
+      连接选中的设备
+    </button>
+    <button id="disconnectBtn" onclick="disconnect()" disabled>断开连接</button>
+
+    <div id="result"></div>
+
+    <script type="text/javascript" src="cordova.js"></script>
+    <script>
+      let isScanning = false;
+      let selectedDevice = null;
+      const discoveredDevices = new Map();
+
+      document.addEventListener("deviceready", onDeviceReady, false);
+
+      function onDeviceReady() {
+        appendToResult("设备准备就绪");
+        updateScanStatus();
+      }
+
+      function updateScanStatus() {
+        const statusDiv = document.getElementById("scanStatus");
+        const startBtn = document.getElementById("startScanBtn");
+        const stopBtn = document.getElementById("stopScanBtn");
+
+        statusDiv.className =
+          "scan-status " + (isScanning ? "scanning" : "not-scanning");
+        statusDiv.textContent = isScanning ? "正在扫描..." : "未开始扫描";
+
+        startBtn.disabled = isScanning;
+        stopBtn.disabled = !isScanning;
+      }
+
+      function appendToResult(message) {
+        const resultDiv = document.getElementById("result");
+        const timestamp = new Date().toLocaleTimeString();
+        resultDiv.innerHTML =
+          `[${timestamp}] ${message}<br>` + resultDiv.innerHTML;
+      }
+
+      function updateDeviceList(device) {
+        const deviceList = document.getElementById("deviceList");
+        const deviceId = device.address;
+
+        if (!discoveredDevices.has(deviceId)) {
+          discoveredDevices.set(deviceId, device);
+
+          const deviceElement = document.createElement("div");
+          deviceElement.className = "device-item";
+          deviceElement.id = `device-${deviceId}`;
+          deviceElement.innerHTML = `
+                    <div><strong>设备名称:</strong> ${device.name}</div>
+                    <div><strong>设备地址:</strong> ${device.address}</div>
+                `;
+
+          deviceElement.addEventListener("click", () => selectDevice(device));
+          deviceList.appendChild(deviceElement);
+
+          appendToResult(`发现新设备: ${device.name}`);
+        }
+      }
+
+      function selectDevice(device) {
+        const prevSelected = document.querySelector(".device-item.selected");
+        if (prevSelected) {
+          prevSelected.classList.remove("selected");
+        }
+
+        const deviceElement = document.getElementById(
+          `device-${device.address}`
+        );
+        if (deviceElement) {
+          deviceElement.classList.add("selected");
+          selectedDevice = device;
+          document.getElementById("connectBtn").disabled = false;
+        }
+      }
+
+      function startScan() {
+        isScanning = true;
+        updateScanStatus();
+        clearDeviceList();
+        appendToResult("开始扫描设备...");
+
+        window.plugins.hxtBdPlugin.startScan(
+          function (result) {
+            appendToResult("收到扫描结果: " + JSON.stringify(result));
+
+            switch (result.type) {
+              case "device":
+                appendToResult("发现设备: " + result.device.name);
+                updateDeviceList(result.device);
+                break;
+              case "log":
+                appendToResult("日志: " + result.message);
+                break;
+              case "error":
+                appendToResult("错误: " + result.message);
+                break;
+              default:
+                appendToResult("其他事件: " + result.type);
+            }
+          },
+          function (error) {
+            appendToResult("扫描错误: " + error);
+            isScanning = false;
+            updateScanStatus();
+          }
+        );
+      }
+
+      function clearDeviceList() {
+        const deviceList = document.getElementById("deviceList");
+        deviceList.innerHTML = "";
+        discoveredDevices.clear();
+        appendToResult("清空设备列表");
+      }
+
+      function stopScan() {
+        window.plugins.hxtBdPlugin.stopScan(
+          function (result) {
+            isScanning = false;
+            updateScanStatus();
+            appendToResult("停止扫描");
+          },
+          function (error) {
+            appendToResult(`停止扫描错误: ${error}`);
+          }
+        );
+      }
+
+      function connectSelected() {
+        if (!selectedDevice) {
+          appendToResult("请先选择要连接的设备");
+          return;
+        }
+
+        window.plugins.hxtBdPlugin.connect(
+          selectedDevice.name,
+          function (result) {
+            if (result.type === "connected") {
+              appendToResult(`成功连接到设备: ${selectedDevice.name}`);
+              document.getElementById("disconnectBtn").disabled = false;
+              document.getElementById("connectBtn").disabled = true;
+            } else {
+              appendToResult(`连接状态: ${result.type}`);
+            }
+          },
+          function (error) {
+            appendToResult(`连接错误: ${error}`);
+          }
+        );
+      }
+
+      function disconnect() {
+        window.plugins.hxtBdPlugin.disconnect(
+          function (result) {
+            appendToResult("设备已断开连接");
+            document.getElementById("disconnectBtn").disabled = true;
+            document.getElementById("connectBtn").disabled = false;
+          },
+          function (error) {
+            appendToResult(`断开连接错误: ${error}`);
+          }
+        );
+      }
+    </script>
+  </body>
+</html>

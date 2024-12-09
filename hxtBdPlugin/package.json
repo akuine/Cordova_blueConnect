@@ -1,0 +1,17 @@
+{
+  "name": "hxtBdPlugin",
+  "version": "1.0.0",
+  "description": "北斗定位终端Cordova插件",
+  "cordova": {
+    "id": "hxtBdPlugin",
+    "platforms": [
+      "android"
+    ]
+  },
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "author": "",
+  "license": "ISC"
+}
