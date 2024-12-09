@@ -42,9 +42,9 @@ public class BlueCorsUtils {
             mainActivity = activity;
             gConfBean = new GConfBean(UseMode.rtk);
             initBluetoothAdapter();
-            Log.d(TAG, "BlueCorsUtils initialized successfully");
+            Log.d(TAG, "BlueCorsUtils 初始化成功");
         } catch (Exception e) {
-            Log.e(TAG, "Error initializing BlueCorsUtils: " + e.getMessage());
+            Log.e(TAG, "初始化 BlueCorsUtils 出错: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -54,7 +54,7 @@ public class BlueCorsUtils {
             gBluetoothManageAdapter = new GBluetoothManageAdapter(gConfBean, mainActivity) {
                 @Override
                 public void slog(String msg) {
-                    Log.d(TAG, "Bluetooth log: " + msg);
+                    Log.d(TAG, "蓝牙日志: " + msg);
                     if (checkBluListener()) {
                         bluEventListener.bluSlog(msg);
                     }
@@ -63,41 +63,41 @@ public class BlueCorsUtils {
                 @Override
                 public void scanResult(GBlueBean gBlueBean) {
                     // 添加详细的日志记录
-                    Log.d(TAG, "Scan result received - Raw data: " + gBlueBean.toString());
+                    Log.d(TAG, "扫描结果 - 原始数据: " + gBlueBean.toString());
                     
                     if (gBlueBean == null) {
-                        Log.e(TAG, "Received null GBlueBean object");
+                        Log.e(TAG, "收到空的 GBlueBean 对象");
                         return;
                     }
                     
                     String deviceName = gBlueBean.getName();
                     String deviceAddress = gBlueBean.getAddress();
                     
-                    Log.d(TAG, "Device found - Name: " + deviceName + ", Address: " + deviceAddress);
+                    Log.d(TAG, "发现设备 - 名称: " + deviceName + ", 地址: " + deviceAddress);
                     
                     if (deviceName == null || deviceName.trim().isEmpty()) {
-                        Log.d(TAG, "Skipping device with empty name");
+                        Log.d(TAG, "跳过名称为空的设备");
                         return;
                     }
                 
                     String deviceId = deviceAddress != null ? deviceAddress : deviceName;
                     if (!discoveredDevices.contains(deviceId)) {
                         discoveredDevices.add(deviceId);
-                        Log.d(TAG, "New device added to discovered list: " + deviceName);
+                        Log.d(TAG, "新设备加入发现列表: " + deviceName);
                         if (checkBluListener()) {
                             bluEventListener.bluScanResult(gBlueBean);
                         } else {
-                            Log.e(TAG, "BlueListener is null, cannot notify about new device");
+                            Log.e(TAG, "蓝牙事件监听器为空，无法通知新设备");
                         }
                     } else {
-                        Log.d(TAG, "Device already discovered: " + deviceName);
+                        Log.d(TAG, "设备已被发现: " + deviceName);
                     }
                 }
 
                 @Override
                 public void revice(GPositionBean gPositionBean) {
                     if (isConnected) {
-                        Log.d(TAG, "Position received: " + gPositionBean.toString());
+                        Log.d(TAG, "接收到位置数据: " + gPositionBean.toString());
                         if (checkBluListener()) {
                             bluEventListener.bluRevice(gPositionBean);
                         }
@@ -107,7 +107,7 @@ public class BlueCorsUtils {
                 @Override
                 public void revice(Hs hs) {
                     if (isConnected) {
-                        Log.d(TAG, "RTK data received: " + hs.toString());
+                        Log.d(TAG, "接收到RTK数据: " + hs.toString());
                         if (checkBluListener()) {
                             bluEventListener.bluRevice(hs);
                         }
@@ -116,12 +116,12 @@ public class BlueCorsUtils {
 
                 @Override
                 public void sendGGATocors(String gga) {
-                    Log.d(TAG, "Sending GGA to CORS: " + gga);
+                    Log.d(TAG, "发送GGA到CORS: " + gga);
                 }
 
                 @Override
                 public void connecting(String s, int i) {
-                    Log.d(TAG, "Connecting to: " + s);
+                    Log.d(TAG, "正在连接到: " + s);
                     isConnected = false;
                     if (checkBluListener()) {
                         bluEventListener.bluConnecting(s, i);
@@ -130,7 +130,7 @@ public class BlueCorsUtils {
 
                 @Override
                 public void connectSuccess(String s, int i) {
-                    Log.d(TAG, "Connect success: " + s);
+                    Log.d(TAG, "连接成功: " + s);
                     isConnected = true;
                     connectedDeviceName = s;
                     if (checkBluListener()) {
@@ -140,7 +140,7 @@ public class BlueCorsUtils {
 
                 @Override
                 public void connectLoss(String s, int i) {
-                    Log.e(TAG, "Connect loss: " + s);
+                    Log.e(TAG, "连接丢失: " + s);
                     isConnected = false;
                     connectedDeviceName = null;
                     if (checkBluListener()) {
@@ -150,7 +150,7 @@ public class BlueCorsUtils {
 
                 @Override
                 public void disconnect(int i) {
-                    Log.d(TAG, "Disconnected: " + i);
+                    Log.d(TAG, "断开连接: " + i);
                     isConnected = false;
                     connectedDeviceName = null;
                     if (checkBluListener()) {
@@ -159,7 +159,7 @@ public class BlueCorsUtils {
                 }
             };
         } catch (Exception e) {
-            Log.e(TAG, "Error initializing Bluetooth adapter: " + e.getMessage());
+            Log.e(TAG, "初始化蓝牙适配器出错: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -175,7 +175,7 @@ public class BlueCorsUtils {
     public synchronized void startBlueScan(Activity activity, OnBluEventListener listener) {
         try {
             if (isScanning) {
-                Log.w(TAG, "Scan already in progress");
+                Log.w(TAG, "扫描已经在进行中");
                 return;
             }
 
@@ -184,13 +184,13 @@ public class BlueCorsUtils {
                 discoveredDevices.clear();
                 isScanning = true;
                 gBluetoothManageAdapter.startScan(activity);
-                Log.d(TAG, "Started Bluetooth scan");
+                Log.d(TAG, "开始蓝牙扫描");
             } else {
-                Log.e(TAG, "Bluetooth adapter not initialized");
-                throw new IllegalStateException("Bluetooth adapter not initialized");
+                Log.e(TAG, "蓝牙适配器未初始化");
+                throw new IllegalStateException("蓝牙适配器未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error starting scan: " + e.getMessage());
+            Log.e(TAG, "启动扫描出错: " + e.getMessage());
             e.printStackTrace();
             isScanning = false;
             throw e;
@@ -203,12 +203,12 @@ public class BlueCorsUtils {
                 gBluetoothManageAdapter.stopScan();
                 isScanning = false;
                 discoveredDevices.clear();
-                Log.d(TAG, "Stopped Bluetooth scan");
+                Log.d(TAG, "停止蓝牙扫描");
             } else {
-                Log.w(TAG, "No scan in progress or adapter not initialized");
+                Log.w(TAG, "没有扫描正在进行或适配器未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error stopping scan: " + e.getMessage());
+            Log.e(TAG, "停止扫描出错: " + e.getMessage());
             e.printStackTrace();
         } finally {
             isScanning = false;
@@ -226,14 +226,14 @@ public class BlueCorsUtils {
                     CORS_FORMAT,
                     CORS_INTERVAL
                 );
-                Log.d(TAG, "Set CORS account for user: " + userName);
+                Log.d(TAG, "设置CORS账号信息，用户: " + userName);
             } else {
-                String error = isConnected ? "Bluetooth adapter not initialized" : "Device not connected";
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
                 Log.e(TAG, error);
                 throw new IllegalStateException(error);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error setting CORS account: " + e.getMessage());
+            Log.e(TAG, "设置CORS账号出错: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
@@ -243,14 +243,14 @@ public class BlueCorsUtils {
         try {
             if (gBluetoothManageAdapter != null && isConnected) {
                 gBluetoothManageAdapter.getCors2RTK();
-                Log.d(TAG, "Getting CORS account information");
+                Log.d(TAG, "获取CORS账号信息");
             } else {
-                String error = isConnected ? "Bluetooth adapter not initialized" : "Device not connected";
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
                 Log.e(TAG, error);
                 throw new IllegalStateException(error);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error getting CORS account: " + e.getMessage());
+            Log.e(TAG, "获取CORS账号出错: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
@@ -260,12 +260,12 @@ public class BlueCorsUtils {
         try {
             if (gBluetoothManageAdapter != null && isConnected) {
                 gBluetoothManageAdapter.disconnect(1);
-                Log.d(TAG, "Disconnected from device: " + connectedDeviceName);
+                Log.d(TAG, "断开与设备的连接: " + connectedDeviceName);
             } else {
-                Log.w(TAG, "No device connected or adapter not initialized");
+                Log.w(TAG, "未连接设备或适配器未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error disconnecting: " + e.getMessage());
+            Log.e(TAG, "断开连接出错: " + e.getMessage());
             e.printStackTrace();
         } finally {
             isConnected = false;
@@ -277,17 +277,17 @@ public class BlueCorsUtils {
         try {
             if (gBluetoothManageAdapter != null) {
                 if (isConnected && blueName.equals(connectedDeviceName)) {
-                    Log.w(TAG, "Already connected to device: " + blueName);
+                    Log.w(TAG, "已连接到设备: " + blueName);
                     return;
                 }
-                Log.d(TAG, "Connecting to device: " + blueName);
+                Log.d(TAG, "正在连接到设备: " + blueName);
                 gBluetoothManageAdapter.connectBlueName(blueName);
             } else {
-                Log.e(TAG, "Bluetooth adapter not initialized");
-                throw new IllegalStateException("Bluetooth adapter not initialized");
+                Log.e(TAG, "蓝牙适配器未初始化");
+                throw new IllegalStateException("蓝牙适配器未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error connecting to device: " + e.getMessage());
+            Log.e(TAG, "连接设备出错: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
@@ -309,7 +309,7 @@ public class BlueCorsUtils {
         if (bluEventListener != null) {
             return true;
         } else {
-            Log.e(TAG, "Bluetooth event listener not initialized");
+            Log.e(TAG, "蓝牙事件监听器未初始化");
             return false;
         }
     }
@@ -318,7 +318,7 @@ public class BlueCorsUtils {
         if (corsEventListener != null) {
             return true;
         } else {
-            Log.e(TAG, "CORS event listener not initialized");
+            Log.e(TAG, "CORS事件监听器未初始化");
             return false;
         }
     }

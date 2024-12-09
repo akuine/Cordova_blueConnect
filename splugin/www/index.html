@@ -8,26 +8,35 @@
       body {
         padding: 20px;
         font-family: Arial, sans-serif;
+        background-color: #f4f6f8;
+        color: #333;
+        line-height: 1.6;
       }
       .device-list {
         margin: 10px 0;
         padding: 0;
+        max-height: 200px; /* 固定高度 */
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #fff;
       }
       .device-item {
         background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin: 5px 0;
+        border-bottom: 1px solid #ddd;
         padding: 10px;
         cursor: pointer;
         transition: background-color 0.3s;
+      }
+      .device-item:last-child {
+        border-bottom: none;
       }
       .device-item:hover {
         background-color: #e9ecef;
       }
       .device-item.selected {
         background-color: #cce5ff;
-        border-color: #b8daff;
+        border-left: 4px solid #007bff;
       }
       button {
         background-color: #007bff;
@@ -38,9 +47,15 @@
         cursor: pointer;
         width: 100%;
         margin: 5px 0;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #0056b3;
       }
       button:disabled {
         background-color: #ccc;
+        cursor: not-allowed;
       }
       #result {
         margin-top: 20px;
@@ -50,8 +65,10 @@
         min-height: 100px;
         max-height: 300px;
         overflow-y: auto;
-        background-color: #f8f9fa;
+        background-color: #fff;
         font-family: monospace;
+        font-size: 14px;
+        line-height: 1.4;
       }
       .scan-status {
         padding: 10px;
@@ -59,6 +76,7 @@
         border-radius: 4px;
         text-align: center;
         font-weight: bold;
+        font-size: 16px;
       }
       .scanning {
         background-color: #d4edda;
@@ -67,6 +85,11 @@
       .not-scanning {
         background-color: #f8d7da;
         color: #721c24;
+      }
+      h3 {
+        margin-top: 20px;
+        font-size: 18px;
+        color: #555;
       }
     </style>
   </head>

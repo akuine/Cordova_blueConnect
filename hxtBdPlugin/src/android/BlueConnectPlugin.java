@@ -28,7 +28,6 @@ public class BlueConnectPlugin extends CordovaPlugin {
     private BlueCorsUtils blueCorsUtils;
     private Activity activity;
     private Context appContext;
-    
     // 需要申请的权限列表
     private String[] permissions = {
         Manifest.permission.BLUETOOTH,
@@ -47,9 +46,9 @@ public class BlueConnectPlugin extends CordovaPlugin {
             appContext = activity.getApplicationContext();
             checkAndRequestPermissions();
             blueCorsUtils = new BlueCorsUtils(activity);
-            Log.d(TAG, "Plugin initialized successfully");
+            Log.d(TAG, "插件初始化成功");
         } catch (Exception e) {
-            Log.e(TAG, "Error initializing plugin: " + e.getMessage());
+            Log.e(TAG, "插件初始化错误: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -62,13 +61,16 @@ public class BlueConnectPlugin extends CordovaPlugin {
             }
         }
         if (!permissionsNeeded.isEmpty()) {
+            Log.d(TAG, "正在请求缺失的权限");
             ActivityCompat.requestPermissions(activity, permissionsNeeded.toArray(new String[0]), 1);
+        } else {
+            Log.d(TAG, "所有必需权限已获取");
         }
     }
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Log.d(TAG, "Executing action: " + action);
+        Log.d(TAG, "执行操作: " + action);
 
         switch (action) {
             case "startScan":
@@ -99,7 +101,7 @@ public class BlueConnectPlugin extends CordovaPlugin {
                 getCorsAccount();
                 return true;
             default:
-                Log.d(TAG, "Invalid action: " + action);
+                Log.d(TAG, "无效的操作: " + action);
                 return false;
         }
     }
@@ -107,11 +109,11 @@ public class BlueConnectPlugin extends CordovaPlugin {
     private void startScan() {
         try {
             if (blueCorsUtils != null) {
-                Log.d(TAG, "Starting scan operation");
+                Log.d(TAG, "开始扫描蓝牙设备");
                 blueCorsUtils.startBlueScan(activity, new BlueCorsUtils.OnBluEventListener() {
                     @Override
                     public void bluSlog(String msg) {
-                        Log.d(TAG, "bluSlog: " + msg);
+                        Log.d(TAG, "蓝牙日志: " + msg);
                         sendScanResult("log", msg);
                     }
 
@@ -119,20 +121,20 @@ public class BlueConnectPlugin extends CordovaPlugin {
                     public void bluScanResult(GBlueBean gBlueBean) {
                         try {
                             if (gBlueBean == null) {
-                                Log.e(TAG, "Received null GBlueBean object");
+                                Log.e(TAG, "收到空的蓝牙设备对象");
                                 return;
                             }
 
-                            Log.d(TAG, "Processing scan result for device: " + gBlueBean.getName());
+                            Log.d(TAG, "发现新设备: " + gBlueBean.getName());
                             JSONObject deviceInfo = new JSONObject();
                             deviceInfo.put("name", gBlueBean.getName());
                             deviceInfo.put("address", gBlueBean.getAddress());
                             
-                            Log.d(TAG, "Sending device info to JS: " + deviceInfo.toString());
+                            Log.d(TAG, "发送设备信息到JS: " + deviceInfo.toString());
                             sendScanResult("device", deviceInfo);
                         } catch (JSONException e) {
-                            Log.e(TAG, "Error processing scan result: " + e.getMessage());
-                            sendError(scanCallbackContext, "Error processing scan result: " + e.getMessage());
+                            Log.e(TAG, "处理扫描结果错误: " + e.getMessage());
+                            sendError(scanCallbackContext, "处理扫描结果错误: " + e.getMessage());
                         }
                     }
 
@@ -140,17 +142,17 @@ public class BlueConnectPlugin extends CordovaPlugin {
                     public void bluRevice(GPositionBean gPositionBean) {
                         try {
                             if (gPositionBean == null) {
-                                Log.e(TAG, "Received null GPositionBean object");
+                                Log.e(TAG, "收到空的位置信息对象");
                                 return;
                             }
 
                             JSONObject positionInfo = new JSONObject();
                             positionInfo.put("position", gPositionBean.toString());
-                            Log.d(TAG, "Position received: " + positionInfo.toString());
+                            Log.d(TAG, "收到位置信息: " + positionInfo.toString());
                             sendScanResult("position", positionInfo);
                         } catch (JSONException e) {
-                            Log.e(TAG, "Error processing position data: " + e.getMessage());
-                            sendError(scanCallbackContext, "Error processing position data: " + e.getMessage());
+                            Log.e(TAG, "处理位置数据错误: " + e.getMessage());
+                            sendError(scanCallbackContext, "处理位置数据错误: " + e.getMessage());
                         }
                     }
 
@@ -158,15 +160,15 @@ public class BlueConnectPlugin extends CordovaPlugin {
                     public void bluRevice(Hs hs) {
                         try {
                             if (hs == null) {
-                                Log.e(TAG, "Received null Hs object");
+                                Log.e(TAG, "收到空的RTK数据对象");
                                 return;
                             }
 
-                            Log.d(TAG, "RTK data received: " + hs.toString());
+                            Log.d(TAG, "收到RTK数据: " + hs.toString());
                             sendScanResult("rtk", hs.toString());
                         } catch (Exception e) {
-                            Log.e(TAG, "Error processing RTK data: " + e.getMessage());
-                            sendError(scanCallbackContext, "Error processing RTK data: " + e.getMessage());
+                            Log.e(TAG, "处理RTK数据错误: " + e.getMessage());
+                            sendError(scanCallbackContext, "处理RTK数据错误: " + e.getMessage());
                         }
                     }
 
@@ -176,11 +178,11 @@ public class BlueConnectPlugin extends CordovaPlugin {
                             JSONObject connectingInfo = new JSONObject();
                             connectingInfo.put("device", s);
                             connectingInfo.put("status", i);
-                            Log.d(TAG, "Connecting to device: " + s);
+                            Log.d(TAG, "正在连接设备: " + s);
                             sendScanResult("connecting", connectingInfo);
                         } catch (JSONException e) {
-                            Log.e(TAG, "Error processing connecting status: " + e.getMessage());
-                            sendError(scanCallbackContext, "Error processing connecting status: " + e.getMessage());
+                            Log.e(TAG, "处理连接状态错误: " + e.getMessage());
+                            sendError(scanCallbackContext, "处理连接状态错误: " + e.getMessage());
                         }
                     }
 
@@ -190,11 +192,11 @@ public class BlueConnectPlugin extends CordovaPlugin {
                             JSONObject successInfo = new JSONObject();
                             successInfo.put("device", s);
                             successInfo.put("status", i);
-                            Log.d(TAG, "Connected successfully to: " + s);
+                            Log.d(TAG, "设备连接成功: " + s);
                             sendScanResult("connected", successInfo);
                         } catch (JSONException e) {
-                            Log.e(TAG, "Error processing connect success status: " + e.getMessage());
-                            sendError(scanCallbackContext, "Error processing connect success status: " + e.getMessage());
+                            Log.e(TAG, "处理连接成功状态错误: " + e.getMessage());
+                            sendError(scanCallbackContext, "处理连接成功状态错误: " + e.getMessage());
                         }
                     }
 
@@ -204,11 +206,11 @@ public class BlueConnectPlugin extends CordovaPlugin {
                             JSONObject lossInfo = new JSONObject();
                             lossInfo.put("device", s);
                             lossInfo.put("status", i);
-                            Log.e(TAG, "Connection lost: " + s);
+                            Log.e(TAG, "设备连接丢失: " + s);
                             sendScanResult("connectionLoss", lossInfo);
                         } catch (JSONException e) {
-                            Log.e(TAG, "Error processing connection loss status: " + e.getMessage());
-                            sendError(scanCallbackContext, "Error processing connection loss status: " + e.getMessage());
+                            Log.e(TAG, "处理连接丢失状态错误: " + e.getMessage());
+                            sendError(scanCallbackContext, "处理连接丢失状态错误: " + e.getMessage());
                         }
                     }
 
@@ -217,21 +219,21 @@ public class BlueConnectPlugin extends CordovaPlugin {
                         try {
                             JSONObject disconnectInfo = new JSONObject();
                             disconnectInfo.put("status", i);
-                            Log.d(TAG, "Device disconnected");
+                            Log.d(TAG, "设备已断开连接");
                             sendScanResult("disconnected", disconnectInfo);
                         } catch (JSONException e) {
-                            Log.e(TAG, "Error processing disconnect status: " + e.getMessage());
-                            sendError(scanCallbackContext, "Error processing disconnect status: " + e.getMessage());
+                            Log.e(TAG, "处理断开连接状态错误: " + e.getMessage());
+                            sendError(scanCallbackContext, "处理断开连接状态错误: " + e.getMessage());
                         }
                     }
                 });
             } else {
-                Log.e(TAG, "BlueCorsUtils not initialized");
-                sendError(scanCallbackContext, "BlueCorsUtils not initialized");
+                Log.e(TAG, "蓝牙工具未初始化");
+                sendError(scanCallbackContext, "蓝牙工具未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Start scan error: " + e.getMessage());
-            sendError(scanCallbackContext, "Start scan error: " + e.getMessage());
+            Log.e(TAG, "启动扫描错误: " + e.getMessage());
+            sendError(scanCallbackContext, "启动扫描错误: " + e.getMessage());
         }
     }
 
@@ -239,76 +241,76 @@ public class BlueConnectPlugin extends CordovaPlugin {
         try {
             if (blueCorsUtils != null) {
                 blueCorsUtils.stopBlueScan();
-                Log.d(TAG, "Scan stopped successfully");
-                sendSuccess(generalCallbackContext, "scanStopped", "Scan stopped successfully");
+                Log.d(TAG, "扫描停止成功");
+                sendSuccess(generalCallbackContext, "scanStopped", "扫描已停止");
             } else {
-                Log.e(TAG, "BlueCorsUtils not initialized");
-                sendError(generalCallbackContext, "BlueCorsUtils not initialized");
+                Log.e(TAG, "蓝牙工具未初始化");
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Stop scan error: " + e.getMessage());
-            sendError(generalCallbackContext, "Stop scan error: " + e.getMessage());
+            Log.e(TAG, "停止扫描错误: " + e.getMessage());
+            sendError(generalCallbackContext, "停止扫描错误: " + e.getMessage());
         }
     }
 
     private void connect(String deviceName) {
         try {
             if (blueCorsUtils != null) {
-                Log.d(TAG, "Attempting to connect to device: " + deviceName);
+                Log.d(TAG, "尝试连接设备: " + deviceName);
                 blueCorsUtils.connectBlueName(deviceName);
             } else {
-                Log.e(TAG, "BlueCorsUtils not initialized");
-                sendError(generalCallbackContext, "BlueCorsUtils not initialized");
+                Log.e(TAG, "蓝牙工具未初始化");
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Connect error: " + e.getMessage());
-            sendError(generalCallbackContext, "Connect error: " + e.getMessage());
+            Log.e(TAG, "连接错误: " + e.getMessage());
+            sendError(generalCallbackContext, "连接错误: " + e.getMessage());
         }
     }
 
     private void disconnect() {
         try {
             if (blueCorsUtils != null) {
-                Log.d(TAG, "Disconnecting device");
+                Log.d(TAG, "正在断开设备连接");
                 blueCorsUtils.disconnect();
             } else {
-                Log.e(TAG, "BlueCorsUtils not initialized");
-                sendError(generalCallbackContext, "BlueCorsUtils not initialized");
+                Log.e(TAG, "蓝牙工具未初始化");
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Disconnect error: " + e.getMessage());
-            sendError(generalCallbackContext, "Disconnect error: " + e.getMessage());
+            Log.e(TAG, "断开连接错误: " + e.getMessage());
+            sendError(generalCallbackContext, "断开连接错误: " + e.getMessage());
         }
     }
 
     private void setCorsAccount(String username, String password) {
         try {
             if (blueCorsUtils != null) {
-                Log.d(TAG, "Setting CORS account for user: " + username);
+                Log.d(TAG, "设置CORS账户, 用户名: " + username);
                 blueCorsUtils.setCors2Rtk(username, password);
-                sendSuccess(generalCallbackContext, "corsSet", "CORS account set successfully");
+                sendSuccess(generalCallbackContext, "corsSet", "CORS账户设置成功");
             } else {
-                Log.e(TAG, "BlueCorsUtils not initialized");
-                sendError(generalCallbackContext, "BlueCorsUtils not initialized");
+                Log.e(TAG, "蓝牙工具未初始化");
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Set CORS account error: " + e.getMessage());
-            sendError(generalCallbackContext, "Set CORS account error: " + e.getMessage());
+            Log.e(TAG, "设置CORS账户错误: " + e.getMessage());
+            sendError(generalCallbackContext, "设置CORS账户错误: " + e.getMessage());
         }
     }
 
     private void getCorsAccount() {
         try {
             if (blueCorsUtils != null) {
-                Log.d(TAG, "Getting CORS account information");
+                Log.d(TAG, "获取CORS账户信息");
                 blueCorsUtils.getCors2Rtk();
             } else {
-                Log.e(TAG, "BlueCorsUtils not initialized");
-                sendError(generalCallbackContext, "BlueCorsUtils not initialized");
+                Log.e(TAG, "蓝牙工具未初始化");
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Get CORS account error: " + e.getMessage());
-            sendError(generalCallbackContext, "Get CORS account error: " + e.getMessage());
+            Log.e(TAG, "获取CORS账户错误: " + e.getMessage());
+            sendError(generalCallbackContext, "获取CORS账户错误: " + e.getMessage());
         }
     }
 
@@ -319,16 +321,16 @@ public class BlueConnectPlugin extends CordovaPlugin {
                 result.put("type", type);
                 result.put("data", data);
                 
-                Log.d(TAG, "Sending scan result: " + result.toString());
+                Log.d(TAG, "发送扫描结果: " + result.toString());
                 PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, result);
                 pluginResult.setKeepCallback(true);
                 scanCallbackContext.sendPluginResult(pluginResult);
             } catch (JSONException e) {
-                Log.e(TAG, "Error creating scan result: " + e.getMessage());
-                sendError(scanCallbackContext, "Error creating scan result: " + e.getMessage());
+                Log.e(TAG, "创建扫描结果错误: " + e.getMessage());
+                sendError(scanCallbackContext, "创建扫描结果错误: " + e.getMessage());
             }
         } else {
-            Log.e(TAG, "Scan callback context is null");
+            Log.e(TAG, "扫描回调上下文为空");
         }
     }
 
@@ -338,23 +340,23 @@ public class BlueConnectPlugin extends CordovaPlugin {
                 JSONObject result = new JSONObject();
                 result.put("type", type);
                 result.put("data", data);
-                Log.d(TAG, "Sending success result: " + result.toString());
+                Log.d(TAG, "发送成功结果: " + result.toString());
                 context.success(result);
             } catch (JSONException e) {
-                Log.e(TAG, "Error creating success result: " + e.getMessage());
-                context.error("Error creating result: " + e.getMessage());
+                Log.e(TAG, "创建成功结果错误: " + e.getMessage());
+                context.error("创建结果错误: " + e.getMessage());
             }
         } else {
-            Log.e(TAG, "Callback context is null");
+            Log.e(TAG, "回调上下文为空");
         }
     }
 
     private void sendError(CallbackContext context, String message) {
         if (context != null) {
-            Log.e(TAG, "Error: " + message);
+            Log.e(TAG, "错误: " + message);
             context.error(message);
         } else {
-            Log.e(TAG, "Callback context is null for error: " + message);
+            Log.e(TAG, "回调上下文为空，错误信息: " + message);
         }
     }
 }
