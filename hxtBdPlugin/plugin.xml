@@ -1,36 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
     xmlns:android="http://schemas.android.com/apk/res/android" id="hxtBdPlugin" version="1.0.0">
-
     <name>hxtBdPlugin</name>
     <description>北斗定位终端 Cordova 插件</description>
-
     <js-module src="www/hxtBdPlugin.js" name="hxtBdPlugin">
         <clobbers target="window.plugins.hxtBdPlugin" />
     </js-module>
-
     <platform name="android">
-        <!-- Hook 脚本用于修改 build.gradle -->
-        <hook type="after_prepare" src="scripts/append_build_extras.gradle.js" />
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="hxtBdPlugin">
                 <param name="android-package" value="com.xst.cordova.BlueConnectPlugin"/>
-                <param name="onload" value="true" />
             </feature>
         </config-file>
-
-        <config-file target="AndroidManifest.xml" parent="/*">
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <!-- 基础蓝牙权限 -->
             <uses-permission android:name="android.permission.BLUETOOTH"/>
             <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-            <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-            <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+            <!-- 位置权限 -->
             <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
             <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+            <!-- 蓝牙特性声明 -->
+            <uses-feature android:name="android.hardware.bluetooth" android:required="true"/>
+            <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
         </config-file>
 
-        <source-file src="src/android/BlueConnectPlugin.java" target-dir="app/src/main/java/com/xst/cordova" />
-        <source-file src="src/android/BlueCorsUtils.java" target-dir="app/src/main/java/com/xst/cordova" />
+        <!-- Java 源文件路径修正 -->
+        <source-file src="src/android/com/xst/cordova/BlueConnectPlugin.java" target-dir="src/android/com/xst/cordova" />
+        <source-file src="src/android/com/xst/cordova/BlueCorsUtils.java" target-dir="src/android/com/xst/cordova" />
+
+        <!-- Gradle 配置 -->
         <framework src="src/android/build-extras.gradle" custom="true" type="gradleReference"/>
-        <lib-file src="src/android/blue-releasev_20241125.aar" />
+
+        <!-- AAR 文件 -->
+        <resource-file src="src/android/libs/blue-releasev_20241125.aar" target="libs/blue-releasev_20241125.aar" />
     </platform>
 </plugin>

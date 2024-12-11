@@ -29,11 +29,9 @@ public class BlueConnectPlugin extends CordovaPlugin {
     private Activity activity;
     private Context appContext;
     // 需要申请的权限列表
-    private String[] permissions = {
+    private static final String[] permissions = new String[]{
         Manifest.permission.BLUETOOTH,
         Manifest.permission.BLUETOOTH_ADMIN,
-        Manifest.permission.BLUETOOTH_SCAN,
-        Manifest.permission.BLUETOOTH_CONNECT,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION
     };
