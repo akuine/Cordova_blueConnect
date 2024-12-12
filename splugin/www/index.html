@@ -1,344 +1,57 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>蓝牙设备连接演示</title>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src * gap: ws: wss: https://ssl.gstatic.com 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';  img-src * 'self' data: https:; frame-src *">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
+    <title>Splugin</title>
     <style>
-      body {
-        padding: 20px;
-        font-family: Arial, sans-serif;
-        background-color: #f4f6f8;
-        color: #333;
-        line-height: 1.6;
-      }
-      .device-list {
-        margin: 10px 0;
-        padding: 0;
-        max-height: 200px; /* 固定高度 */
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background-color: #fff;
-      }
-      .device-item {
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #ddd;
-        padding: 10px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
-      .device-item:last-child {
-        border-bottom: none;
-      }
-      .device-item:hover {
-        background-color: #e9ecef;
-      }
-      .device-item.selected {
-        background-color: #cce5ff;
-        border-left: 4px solid #007bff;
-      }
-      button {
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        width: 100%;
-        margin: 5px 0;
-        font-size: 16px;
-        transition: background-color 0.3s;
-      }
-      button:hover {
-        background-color: #0056b3;
-      }
-      button:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
-      }
-      #result {
-        margin-top: 20px;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        min-height: 100px;
-        max-height: 300px;
-        overflow-y: auto;
-        background-color: #fff;
-        font-family: monospace;
-        font-size: 14px;
-        line-height: 1.4;
-      }
-      .scan-status {
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 4px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 16px;
-      }
-      .scanning {
-        background-color: #d4edda;
-        color: #155724;
-      }
-      .not-scanning {
-        background-color: #f8d7da;
-        color: #721c24;
-      }
-      h3 {
-        margin-top: 20px;
-        font-size: 18px;
-        color: #555;
-      }
-      .section {
-        margin-top: 20px;
-        padding: 10px;
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-      }
-      .form-group {
-        margin-bottom: 10px;
-      }
-      .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-size: 14px;
-        font-weight: bold;
-      }
-      .form-group input {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 14px;
-      }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #vueapp {
+            width: 100%;
+            height: 100vh;
+            border: none;
+        }
     </style>
-  </head>
-  <body>
-    <div id="scanStatus" class="scan-status not-scanning">未开始扫描</div>
-
-    <button id="startScanBtn" onclick="startScan()">开始扫描</button>
-    <button id="stopScanBtn" onclick="stopScan()" disabled>停止扫描</button>
-
-    <h3>发现的设备：</h3>
-    <div id="deviceList" class="device-list"></div>
-
-    <button id="connectBtn" onclick="connectSelected()" disabled>
-      连接选中的设备
-    </button>
-    <button id="disconnectBtn" onclick="disconnect()" disabled>断开连接</button>
-
-    <div id="corsSection" class="section">
-      <h3>CORS 设置</h3>
-      <div class="form-group">
-        <label for="usernameInput">用户名:</label>
-        <input type="text" id="usernameInput" placeholder="请输入用户名" />
-      </div>
-      <div class="form-group">
-        <label for="passwordInput">密码:</label>
-        <input type="password" id="passwordInput" placeholder="请输入密码" />
-      </div>
-      <button onclick="setCorsAccount()">设置CORS账号</button>
-      <button onclick="getCorsAccount()">获取CORS账号</button>
-    </div>
-
-    <div id="result"></div>
-
-    <script type="text/javascript" src="cordova.js"></script>
+</head>
+<body>
+    <script src="cordova.js"></script>
+    <iframe id="vueapp"></iframe>
     <script>
-      let isScanning = false;
-      let selectedDevice = null;
-      const discoveredDevices = new Map();
+        // 保存原始的 Cordova 对象
+        let originalCordova = null;
+        let originalPlugins = null;
 
-      document.addEventListener("deviceready", onDeviceReady, false);
+        document.addEventListener('deviceready', function() {
+            console.log('Cordova is ready in main window');
+            
+            // 保存原始对象
+            originalCordova = window.cordova;
+            originalPlugins = window.plugins;
 
-      function onDeviceReady() {
-        appendToResult("设备准备就绪");
-        console.log("设备准备就绪");
-        updateScanStatus();
-      }
+            var iframe = document.getElementById('vueapp');
+            iframe.src = "http://192.168.144.14:8082";
 
-      function updateScanStatus() {
-        const statusDiv = document.getElementById("scanStatus");
-        const startBtn = document.getElementById("startScanBtn");
-        const stopBtn = document.getElementById("stopScanBtn");
-
-        statusDiv.className =
-          "scan-status " + (isScanning ? "scanning" : "not-scanning");
-        statusDiv.textContent = isScanning ? "正在扫描..." : "未开始扫描";
-
-        startBtn.disabled = isScanning;
-        stopBtn.disabled = !isScanning;
-      }
-
-      function appendToResult(message) {
-        const resultDiv = document.getElementById("result");
-        const timestamp = new Date().toLocaleTimeString();
-        const logMessage = `[${timestamp}] ${message}`;
-        console.log(logMessage);
-        resultDiv.innerHTML = logMessage + "<br>" + resultDiv.innerHTML;
-      }
-
-      function updateDeviceList(device) {
-        const deviceList = document.getElementById("deviceList");
-        const deviceId = device.address;
-
-        if (!discoveredDevices.has(deviceId)) {
-          discoveredDevices.set(deviceId, device);
-
-          const deviceElement = document.createElement("div");
-          deviceElement.className = "device-item";
-          deviceElement.id = `device-${deviceId}`;
-          deviceElement.innerHTML = `
-                    <div><strong>设备名称:</strong> ${device.name}</div>
-                    <div><strong>设备地址:</strong> ${device.address}</div>
-                `;
-
-          deviceElement.addEventListener("click", () => selectDevice(device));
-          deviceList.appendChild(deviceElement);
-
-          appendToResult(`发现新设备: ${device.name}`);
-        }
-      }
-
-      function selectDevice(device) {
-        const prevSelected = document.querySelector(".device-item.selected");
-        if (prevSelected) {
-          prevSelected.classList.remove("selected");
-        }
-
-        const deviceElement = document.getElementById(
-          `device-${device.address}`
-        );
-        if (deviceElement) {
-          deviceElement.classList.add("selected");
-          selectedDevice = device;
-          document.getElementById("connectBtn").disabled = false;
-        }
-      }
-
-      function startScan() {
-        isScanning = true;
-        updateScanStatus();
-        clearDeviceList();
-        appendToResult("开始扫描设备...");
-
-        window.plugins.hxtBdPlugin.startScan(
-          function (result) {
-            appendToResult("收到扫描结果: " + JSON.stringify(result));
-
-            switch (result.type) {
-              case "device":
-                appendToResult("发现设备: " + result.device.name);
-                updateDeviceList(result.device);
-                break;
-              case "log":
-                appendToResult("日志: " + result.message);
-                break;
-              case "error":
-                appendToResult("错误: " + result.message);
-                break;
-              default:
-                appendToResult("其他事件: " + result.type);
-            }
-          },
-          function (error) {
-            appendToResult("扫描错误: " + error);
-            isScanning = false;
-            updateScanStatus();
-          }
-        );
-      }
-
-      function clearDeviceList() {
-        const deviceList = document.getElementById("deviceList");
-        deviceList.innerHTML = "";
-        discoveredDevices.clear();
-        appendToResult("清空设备列表");
-      }
-
-      function stopScan() {
-        window.plugins.hxtBdPlugin.stopScan(
-          function (result) {
-            isScanning = false;
-            updateScanStatus();
-            appendToResult("停止扫描");
-          },
-          function (error) {
-            appendToResult(`停止扫描错误: ${error}`);
-          }
-        );
-      }
-
-      function connectSelected() {
-        if (!selectedDevice) {
-          appendToResult("请先选择要连接的设备");
-          return;
-        }
-
-        window.plugins.hxtBdPlugin.connect(
-          selectedDevice.name,
-          function (result) {
-            if (result.type === "connected") {
-              appendToResult(`成功连接到设备: ${selectedDevice.name}`);
-              document.getElementById("disconnectBtn").disabled = false;
-              document.getElementById("connectBtn").disabled = true;
-            } else {
-              appendToResult(`连接状态: ${result.type}`);
-            }
-          },
-          function (error) {
-            appendToResult(`连接错误: ${error}`);
-          }
-        );
-      }
-
-      function disconnect() {
-        window.plugins.hxtBdPlugin.disconnect(
-          function (result) {
-            appendToResult("设备已断开连接");
-            document.getElementById("disconnectBtn").disabled = true;
-            document.getElementById("connectBtn").disabled = false;
-          },
-          function (error) {
-            appendToResult(`断开连接错误: ${error}`);
-          }
-        );
-      }
-
-      function setCorsAccount() {
-        const username = document.getElementById("usernameInput").value;
-        const password = document.getElementById("passwordInput").value;
-
-        if (!username || !password) {
-          appendToResult("用户名或密码不能为空");
-          return;
-        }
-
-        window.plugins.hxtBdPlugin.setCorsAccount(
-          username,
-          password,
-          function (result) {
-            appendToResult(`CORS 账号设置成功: ${JSON.stringify(result)}`);
-          },
-          function (error) {
-            appendToResult(`CORS 账号设置失败: ${error}`);
-          }
-        );
-      }
-
-      function getCorsAccount() {
-        window.plugins.hxtBdPlugin.getCorsAccount(
-          function (result) {
-            appendToResult(`CORS 账号信息: ${JSON.stringify(result)}`);
-          },
-          function (error) {
-            appendToResult(`获取 CORS 账号失败: ${error}`);
-          }
-        );
-      }
+            // 周期性检查并注入 Cordova 对象
+            setInterval(function() {
+                try {
+                    if (iframe.contentWindow && !iframe.contentWindow.cordova) {
+                        iframe.contentWindow.cordova = originalCordova;
+                        iframe.contentWindow.plugins = originalPlugins;
+                        console.log('Injected Cordova objects');
+                    }
+                } catch (e) {
+                    console.error('Injection failed:', e);
+                }
+            }, 500);
+        }, false);
     </script>
-  </body>
+</body>
 </html>

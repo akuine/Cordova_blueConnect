@@ -17,7 +17,10 @@
       "android"
     ],
     "plugins": {
-      "hxtBdPlugin": {}
+      "hxtBdPlugin": {},
+      "cordova-plugin-file": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
+      }
     }
   },
   "dependencies": {
@@ -25,6 +28,7 @@
   },
   "devDependencies": {
     "cordova-android": "^13.0.0",
+    "cordova-plugin-file": "^8.1.3",
     "hxtBdPlugin": "file:../hxtBdPlugin"
   }
 }

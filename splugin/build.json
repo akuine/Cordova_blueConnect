@@ -1,16 +1,22 @@
 {
   "android": {
-      "debug": {
-          "buildConfig": {
-              "gradle_version": "7.3.3",
-              "gradle_plugin_version": "7.0.4"
-          }
-      },
-      "release": {
-          "buildConfig": {
-              "gradle_version": "7.3.3",
-              "gradle_plugin_version": "7.0.4"
-          }
+    "debug": {
+      "buildConfig": {
+        "gradle_version": "7.3.3",
+        "gradle_plugin_version": "7.0.4",
+        "properties": {
+          "android.suppressUnsupportedCompileSdk": "35"
+        }
       }
+    },
+    "release": {
+      "buildConfig": {
+        "gradle_version": "7.3.3",
+        "gradle_plugin_version": "7.0.4",
+        "properties": {
+          "android.suppressUnsupportedCompileSdk": "35"
+        }
+      }
+    }
   }
 }
