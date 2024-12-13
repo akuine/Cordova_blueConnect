@@ -17,10 +17,10 @@
       "android"
     ],
     "plugins": {
-      "hxtBdPlugin": {},
       "cordova-plugin-file": {
         "ANDROIDX_WEBKIT_VERSION": "1.4.0"
-      }
+      },
+      "hxtBdPlugin": {}
     }
   },
   "dependencies": {

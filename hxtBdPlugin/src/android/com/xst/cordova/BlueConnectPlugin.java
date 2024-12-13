@@ -68,13 +68,17 @@ public class BlueConnectPlugin extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Log.d(TAG, "执行操作: " + action);
+        Log.d(TAG, "执行操作: " + action); // 添加这行来确认是否收到断开请求
 
         switch (action) {
             case "startScan":
-                this.scanCallbackContext = callbackContext;
-                startScan();
-                return true;
+            this.scanCallbackContext = callbackContext;  // 设置扫描回调上下文
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    startScan();
+                }
+            });
+            return true;
             case "stopScan":
                 this.generalCallbackContext = callbackContext;
                 stopScan();
@@ -86,49 +90,276 @@ public class BlueConnectPlugin extends CordovaPlugin {
                 return true;
             case "disconnect":
                 this.generalCallbackContext = callbackContext;
-                disconnect();
+                // 添加日志
+                Log.d(TAG, "收到断开连接请求");
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        disconnect();
+                    }
+                });
                 return true;
             case "setCorsAccount":
+                final String username = args.getString(0);
+                final String password = args.getString(1);
                 this.generalCallbackContext = callbackContext;
-                String username = args.getString(0);
-                String password = args.getString(1);
-                setCorsAccount(username, password);
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        try {
+                            Log.d(TAG, "Native层: 开始设置CORS账号");
+                            if (blueCorsUtils != null) {
+                                // 添加连接状态检查
+                                if (blueCorsUtils.isConnected()) {
+                                    Log.d(TAG, "Native层: 正在设置CORS账号, username=" + username);
+                                    blueCorsUtils.setCors2Rtk(username, password);
+                                    sendSuccess(generalCallbackContext, "corsSet", "CORS账号设置成功");
+                                } else {
+                                    Log.e(TAG, "Native层: 设备未连接");
+                                    sendError(generalCallbackContext, "请先连接设备");
+                                }
+                            } else {
+                                Log.e(TAG, "Native层: blueCorsUtils未初始化");
+                                sendError(generalCallbackContext, "蓝牙工具未初始化");
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Native层: 设置CORS账号错误", e);
+                            sendError(generalCallbackContext, "设置CORS账号错误: " + e.getMessage());
+                        }
+                    }
+                });
                 return true;
             case "getCorsAccount":
                 this.generalCallbackContext = callbackContext;
                 getCorsAccount();
+                return true;
+            case "getBdICR":
+                this.generalCallbackContext = callbackContext;
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        getBdICR();
+                    }
+                });
+                return true;
+
+            case "getMqttAccount":
+                this.generalCallbackContext = callbackContext;
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        getMqttAccountInfo();  // 重命名方法避免冲突
+                    }
+                });
+                return true;
+
+
+            case "setInsBlueToRtk":
+                final String insBlueName = args.getString(0);
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        setInsBlueToRtk(insBlueName);
+                    }
+                });
+                return true;
+
+            case "getInsBlueFromRtk":
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        getInsBlueFromRtk();
+                    }
+                });
+                return true;
+
+            case "setMqttAccount":
+                final String mqttIp = args.getString(0);
+                final String mqttAccount = args.getString(1);
+                final String mqttPwd = args.getString(2);  // 修改变量名避免冲突
+                final String mqttTopic = args.getString(3);
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        setMqttAccount(mqttIp, mqttAccount, mqttPwd, mqttTopic);
+                    }
+                });
+                return true;
+
+
+
+            case "startGather":  // 开启键盘按钮监听
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        startGather();
+                    }
+                });
+                return true;
+
+            case "sendBlueData":  // 发送数据到蓝牙
+                final String data = args.getString(0);
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        sendBlueData(data);
+                    }
+                });
+                return true;
+
+            case "sendGgaToCors":  // 发送GGA数据到CORS
+                final String gga = args.getString(0);
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        sendGgaToCors(gga);
+                    }
+                });
                 return true;
             default:
                 Log.d(TAG, "无效的操作: " + action);
                 return false;
         }
     }
-
-    private void startScan() {
+    private void getBdICR() {
         try {
             if (blueCorsUtils != null) {
-                Log.d(TAG, "开始扫描蓝牙设备");
+                blueCorsUtils.getBdICR();
+                sendSuccess(generalCallbackContext, "bdICR", "正在获取北斗卡号");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "获取北斗卡号错误: " + e.getMessage());
+        }
+    }
+
+    private void getMqttAccountInfo() {
+        try {
+            if (blueCorsUtils != null) {
+                blueCorsUtils.getMqtt2RTK();
+                sendSuccess(generalCallbackContext, "mqttGet", "正在获取MQTT账号信息");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "获取MQTT账号错误: " + e.getMessage());
+        }
+    }
+
+    private void setInsBlueToRtk(String insBlueName) {
+        try {
+            if (blueCorsUtils != null) {
+                blueCorsUtils.setInsBlueName2RTK(insBlueName);
+                sendSuccess(generalCallbackContext, "insBlueSet", "设置惯导蓝牙成功");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "设置惯导蓝牙错误: " + e.getMessage());
+        }
+    }
+
+    private void getInsBlueFromRtk() {
+        try {
+            if (blueCorsUtils != null) {
+                blueCorsUtils.getInsBlueName2RTK();
+                sendSuccess(generalCallbackContext, "insBlueGet", "正在获取惯导蓝牙名称");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "获取惯导蓝牙名称错误: " + e.getMessage());
+        }
+    }
+
+    private void setMqttAccount(String ip, String account, String password, String topic) {
+        try {
+            if (blueCorsUtils != null) {
+                blueCorsUtils.setMqtt2RTK(ip, account, password, topic);
+                sendSuccess(generalCallbackContext, "mqttSet", "设置MQTT账号成功");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "设置MQTT账号错误: " + e.getMessage());
+        }
+    }
+
+    private void getMqttAccount() {
+        try {
+            if (blueCorsUtils != null) {
+                blueCorsUtils.getMqtt2RTK();
+                sendSuccess(generalCallbackContext, "mqttGet", "正在获取MQTT账号信息");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "获取MQTT账号错误: " + e.getMessage());
+        }
+    }
+
+    private void startGather() {
+        try {
+            if (blueCorsUtils != null) {
+                blueCorsUtils.startGather();
+                sendSuccess(generalCallbackContext, "gather", "已开启键盘按钮监听");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "开启键盘按钮监听错误: " + e.getMessage());
+        }
+    }
+
+    private void sendBlueData(String data) {
+        try {
+            if (blueCorsUtils != null) {
+                blueCorsUtils.rewriteBlue(data.getBytes());
+                sendSuccess(generalCallbackContext, "dataSent", "数据发送成功");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "发送数据错误: " + e.getMessage());
+        }
+    }
+
+    private void sendGgaToCors(String gga) {
+        try {
+            if (blueCorsUtils != null) {
+                blueCorsUtils.sendGGATocors(gga);
+                sendSuccess(generalCallbackContext, "ggaSent", "GGA数据发送成功");
+            } else {
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            sendError(generalCallbackContext, "发送GGA数据错误: " + e.getMessage());
+        }
+    }
+    private void startScan() {
+        try {
+            Log.d(TAG, "Native层: 开始执行扫描");
+            if (blueCorsUtils != null) {
+                Log.d(TAG, "Native层: 调用startBlueScan");
                 blueCorsUtils.startBlueScan(activity, new BlueCorsUtils.OnBluEventListener() {
                     @Override
                     public void bluSlog(String msg) {
                         Log.d(TAG, "蓝牙日志: " + msg);
-                        sendScanResult("log", msg);
                     }
-
+    
                     @Override
                     public void bluScanResult(GBlueBean gBlueBean) {
                         try {
                             if (gBlueBean == null) {
-                                Log.e(TAG, "收到空的蓝牙设备对象");
+                                Log.e(TAG, "收到空的GBlueBean对象");
                                 return;
                             }
-
-                            Log.d(TAG, "发现新设备: " + gBlueBean.getName());
-                            JSONObject deviceInfo = new JSONObject();
-                            deviceInfo.put("name", gBlueBean.getName());
-                            deviceInfo.put("address", gBlueBean.getAddress());
+    
+                            String deviceName = gBlueBean.getName();
+                            String deviceAddress = gBlueBean.getAddress();
                             
-                            Log.d(TAG, "发送设备信息到JS: " + deviceInfo.toString());
+                            if (deviceName == null || deviceName.trim().isEmpty()) {
+                                Log.d(TAG, "设备名称为空，跳过");
+                                return;
+                            }
+    
+                            Log.d(TAG, "发现设备 - 名称: " + deviceName + ", 地址: " + deviceAddress);
+                            
+                            JSONObject deviceInfo = new JSONObject();
+                            deviceInfo.put("name", deviceName);
+                            deviceInfo.put("address", deviceAddress);
+                            
                             sendScanResult("device", deviceInfo);
                         } catch (JSONException e) {
                             Log.e(TAG, "处理扫描结果错误: " + e.getMessage());
@@ -230,7 +461,8 @@ public class BlueConnectPlugin extends CordovaPlugin {
                 sendError(scanCallbackContext, "蓝牙工具未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "启动扫描错误: " + e.getMessage());
+            Log.e(TAG, "扫描错误: " + e.getMessage());
+            e.printStackTrace();
             sendError(scanCallbackContext, "启动扫描错误: " + e.getMessage());
         }
     }
@@ -268,15 +500,30 @@ public class BlueConnectPlugin extends CordovaPlugin {
 
     private void disconnect() {
         try {
+            Log.d(TAG, "Native层: 开始执行断开操作");
             if (blueCorsUtils != null) {
-                Log.d(TAG, "正在断开设备连接");
-                blueCorsUtils.disconnect();
+                // 添加更多状态检查
+                boolean isConnected = blueCorsUtils.isConnected();
+                Log.d(TAG, "Native层: blueCorsUtils状态 - 是否连接: " + isConnected);
+                
+                if (isConnected) {
+                    // 发送断开连接状态
+                    sendScanResult("disconnecting", null);
+                    
+                    // 执行断开
+                    blueCorsUtils.disconnect();
+                    Log.d(TAG, "Native层: 断开指令已发送");
+                } else {
+                    Log.w(TAG, "Native层: 设备未连接");
+                    sendError(generalCallbackContext, "当前没有连接的设备");
+                }
             } else {
-                Log.e(TAG, "蓝牙工具未初始化");
+                Log.e(TAG, "Native层: blueCorsUtils为空");
                 sendError(generalCallbackContext, "蓝牙工具未初始化");
             }
         } catch (Exception e) {
-            Log.e(TAG, "断开连接错误: " + e.getMessage());
+            Log.e(TAG, "Native层: 断开连接错误", e);
+            e.printStackTrace();
             sendError(generalCallbackContext, "断开连接错误: " + e.getMessage());
         }
     }
@@ -324,13 +571,14 @@ public class BlueConnectPlugin extends CordovaPlugin {
                 pluginResult.setKeepCallback(true);
                 scanCallbackContext.sendPluginResult(pluginResult);
             } catch (JSONException e) {
-                Log.e(TAG, "创建扫描结果错误: " + e.getMessage());
+                Log.e(TAG, "创建JSON结果错误: " + e.getMessage());
                 sendError(scanCallbackContext, "创建扫描结果错误: " + e.getMessage());
             }
         } else {
             Log.e(TAG, "扫描回调上下文为空");
         }
     }
+    
 
     private void sendSuccess(CallbackContext context, String type, Object data) {
         if (context != null) {

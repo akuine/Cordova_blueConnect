@@ -128,37 +128,77 @@ public class BlueCorsUtils {
                     }
                 }
 
-                @Override
-                public void connectSuccess(String s, int i) {
-                    Log.d(TAG, "连接成功: " + s);
-                    isConnected = true;
-                    connectedDeviceName = s;
-                    if (checkBluListener()) {
-                        bluEventListener.bluConnectSuccess(s, i);
-                    }
-                }
+   // 确保连接状态正确更新
+   @Override
+   public void connectSuccess(String s, int i) {
+       Log.d(TAG, "连接成功: " + s);
+    // 添加短暂延时确保状态同步
+    try {
+        Thread.sleep(100);
+    } catch (InterruptedException e) {
+        Log.e(TAG, "延时被中断", e);
+    }
+    isConnected = true;
+    connectedDeviceName = s;
+    if (checkBluListener()) {
+        bluEventListener.bluConnectSuccess(s, i);
+    }
+   }
 
-                @Override
-                public void connectLoss(String s, int i) {
-                    Log.e(TAG, "连接丢失: " + s);
-                    isConnected = false;
-                    connectedDeviceName = null;
-                    if (checkBluListener()) {
-                        bluEventListener.bluConnectLoss(s, i);
-                    }
-                }
+   @Override
+   public void connectLoss(String s, int i) {
+       Log.e(TAG, "连接丢失: " + s);
+       isConnected = false;
+       connectedDeviceName = null;
+       if (checkBluListener()) {
+           bluEventListener.bluConnectLoss(s, i);
+       }
+   }
 
-                @Override
-                public void disconnect(int i) {
-                    Log.d(TAG, "断开连接: " + i);
-                    isConnected = false;
-                    connectedDeviceName = null;
-                    if (checkBluListener()) {
-                        bluEventListener.bluDisconnect(i);
-                    }
-                }
+   @Override
+   public void disconnect(int i) {
+       Log.d(TAG, "设备已断开连接: " + i);
+       isConnected = false;
+       connectedDeviceName = null;
+       if (checkBluListener()) {
+           bluEventListener.bluDisconnect(i);
+       }
+   }
+
+   public synchronized void setCors2Rtk(String userName, String keyword) {
+       try {
+           if (gBluetoothManageAdapter != null && isConnected) {
+               Log.d(TAG, "开始设置CORS账号, username=" + userName);
+               gBluetoothManageAdapter.setCors2RTK(
+                   CORS_SERVER,
+                   CORS_PORT,
+                   userName,
+                   keyword,
+                   CORS_FORMAT,
+                   CORS_INTERVAL
+               );
+               Log.d(TAG, "CORS账号设置已发送");
+           } else {
+               String error = gBluetoothManageAdapter == null ? 
+                   "蓝牙适配器未初始化" : "设备未连接";
+               Log.e(TAG, error);
+               throw new IllegalStateException(error);
+           }
+       } catch (Exception e) {
+           Log.e(TAG, "设置CORS账号错误: " + e.getMessage());
+           e.printStackTrace();
+           throw e;
+       }
+   }
+
+   public boolean isConnected() {
+       // 添加日志输出
+       Log.d(TAG, "检查连接状态: " + isConnected + 
+             ", 设备名: " + (connectedDeviceName != null ? connectedDeviceName : "无"));
+       return isConnected && gBluetoothManageAdapter != null;
+   }
             };
-        } catch (Exception e) {
+        }catch (Exception e) {
             Log.e(TAG, "初始化蓝牙适配器出错: " + e.getMessage());
             e.printStackTrace();
         }
@@ -258,18 +298,18 @@ public class BlueCorsUtils {
 
     public synchronized void disconnect() {
         try {
+            Log.d(TAG, "BlueCorsUtils: 开始断开连接");
             if (gBluetoothManageAdapter != null && isConnected) {
+                Log.d(TAG, "BlueCorsUtils: 执行断开操作");
                 gBluetoothManageAdapter.disconnect(1);
-                Log.d(TAG, "断开与设备的连接: " + connectedDeviceName);
+                Log.d(TAG, "BlueCorsUtils: 断开指令已发送");
             } else {
-                Log.w(TAG, "未连接设备或适配器未初始化");
+                Log.w(TAG, "BlueCorsUtils: " + 
+                      (gBluetoothManageAdapter == null ? "适配器为空" : "设备未连接"));
             }
         } catch (Exception e) {
-            Log.e(TAG, "断开连接出错: " + e.getMessage());
+            Log.e(TAG, "BlueCorsUtils: 断开连接出错", e);
             e.printStackTrace();
-        } finally {
-            isConnected = false;
-            connectedDeviceName = null;
         }
     }
 
@@ -322,6 +362,168 @@ public class BlueCorsUtils {
             return false;
         }
     }
+    // 搜索北斗卡号
+    public void getBdICR() {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.getBdICR();
+                Log.d(TAG, "正在获取北斗卡号");
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "获取北斗卡号错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    // 获取CORS账号信息
+    public void getMqttAccountInfo() {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.getMqtt2RTK();
+                Log.d(TAG, "正在获取MQTT账号信息");
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "获取MQTT账号错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }  
+
+    // 设置惯导蓝牙到RTK
+    public void setInsBlueName2RTK(String insBlueName) {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.setInsBlueName2RTK(insBlueName);
+                Log.d(TAG, "设置惯导蓝牙名称: " + insBlueName);
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "设置惯导蓝牙错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    // 从RTK获取惯导蓝牙名称
+    public void getInsBlueName2RTK() {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.getInsBlueName2RTK();
+                Log.d(TAG, "正在获取惯导蓝牙名称");
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "获取惯导蓝牙名称错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    // 设置Mqtt账户到RTK
+    public void setMqtt2RTK(String ip, String account, String pwd, String topic) {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.setMqtt2RTK(ip, account, pwd, topic);
+                Log.d(TAG, "设置MQTT账号信息 - IP: " + ip + ", 账号: " + account);
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "设置MQTT账号错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    // 获取Mqtt账户信息
+    public void getMqtt2RTK() {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.getMqtt2RTK();
+                Log.d(TAG, "正在获取MQTT账号信息");
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "获取MQTT账号错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    // 开启键盘按钮监听
+    public void startGather() {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.startGather();
+                Log.d(TAG, "开启键盘按钮监听");
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "开启键盘按钮监听错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    // 发送数据到蓝牙
+    public void rewriteBlue(byte[] data) {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.rewriteBlue(data);
+                Log.d(TAG, "发送数据到蓝牙: " + data.length + " 字节");
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "发送数据错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    // 发送GGA到CORS
+    public void sendGGATocors(String gga) {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.sendGGATocors(gga);
+                Log.d(TAG, "发送GGA数据到CORS");
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "发送GGA数据错误: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+    
 
     public interface OnCorsEventListener {
         void corsSlog(String msg);
