@@ -430,32 +430,55 @@
         }
 
         // 获取当前输入框中的值
-        const currentUsername = document.getElementById("corsUsername").value;
-        const currentPassword = document.getElementById("corsPassword").value;
+        let currentUsername = document.getElementById("corsUsername").value;
+        let currentPassword = document.getElementById("corsPassword").value;
 
-        if (!currentUsername || !currentPassword) {
-          // 如果没有用户信息，先获取一次
-          appendToResult("正在获取设备账号信息...");
-          window.plugins.hxtBdPlugin.getCorsAccount(
+        if (currentUsername && currentPassword) {
+          // 如果已有账号信息，直接更新
+          appendToResult(`使用当前账号更新: ${currentUsername}`);
+          window.plugins.hxtBdPlugin.setCorsAccount(
+            currentUsername,
+            currentPassword,
             function (result) {
-              if (result && result.data) {
-                // 获取到信息后，更新并断开
-                updateCorsAccountAndDisconnect(
-                  result.data.username,
-                  result.data.password
-                );
-              } else {
-                performDisconnect(); // 如果获取不到信息，直接断开
-              }
+              appendToResult("更新CORS账号成功");
+              performDisconnect();
             },
             function (error) {
-              appendToResult("获取账号信息失败，直接断开连接", "warning");
+              appendToResult("更新CORS账号失败，继续执行断开");
               performDisconnect();
             }
           );
         } else {
-          // 有用户信息，直接更新并断开
-          updateCorsAccountAndDisconnect(currentUsername, currentPassword);
+          // 如果没有账号信息，先尝试获取
+          appendToResult("尝试获取设备账号信息...");
+          window.plugins.hxtBdPlugin.getCorsAccount();
+
+          // 等待一段时间后检查是否获取到值
+          setTimeout(() => {
+            currentUsername = document.getElementById("corsUsername").value;
+            currentPassword = document.getElementById("corsPassword").value;
+
+            if (currentUsername && currentPassword) {
+              // 成功获取到账号信息，进行更新
+              appendToResult(`获取到账号信息，进行更新: ${currentUsername}`);
+              window.plugins.hxtBdPlugin.setCorsAccount(
+                currentUsername,
+                currentPassword,
+                function (result) {
+                  appendToResult("更新CORS账号成功");
+                  performDisconnect();
+                },
+                function (error) {
+                  appendToResult("更新CORS账号失败，继续执行断开");
+                  performDisconnect();
+                }
+              );
+            } else {
+              // 仍然没有获取到账号信息
+              appendToResult("未能获取到账号信息，直接断开连接");
+              performDisconnect();
+            }
+          }, 1000); // 给一个合理的延时，确保有足够时间获取信息
         }
       }
 
