@@ -174,18 +174,97 @@
     <script>
       let isScanning = false;
       let selectedDevice = null;
-      // 添加全局变量用于存储状态和位置信息
+      // 存储状态和位置信息
       let isDeviceConnected = false;
       let lastPositionInfo = null;
       const discoveredDevices = new Map();
+      // 定时器
+      let connectionStatusChecker = null;
 
       document.addEventListener("deviceready", onDeviceReady, false);
 
       function onDeviceReady() {
         appendToResult("设备准备就绪");
         updateScanStatus();
+        // 启动连接状态监控
+        startConnectionStatusMonitor();
       }
+      // 连接状态监控函数
+      function startConnectionStatusMonitor() {
+        console.log("开始监控设备连接状态");
+        // 每秒检查一次连接状态
+        connectionStatusChecker = setInterval(() => {
+          const pluginConnected =
+            window.plugins.hxtBdPlugin.getConnectionStatus();
+          console.log(
+            "当前设备状态检查 - JS状态:",
+            isDeviceConnected,
+            "插件状态:",
+            pluginConnected
+          );
 
+          // 状态发生改变时记录日志
+          if (pluginConnected !== isDeviceConnected) {
+            console.log("设备连接状态发生变化");
+            console.log("之前状态:", isDeviceConnected);
+            console.log("现在状态:", pluginConnected);
+
+            // 如果之前是连接状态，现在变成未连接，进行页面重置
+            if (isDeviceConnected && !pluginConnected) {
+              console.log("检测到设备断开，准备重置页面");
+              appendToResult("检测到设备断开连接");
+              resetEntirePage();
+            } else if (!isDeviceConnected && pluginConnected) {
+              console.log("检测到设备连接");
+              appendToResult("检测到设备已连接");
+            }
+
+            isDeviceConnected = pluginConnected;
+            console.log("状态已更新为:", isDeviceConnected);
+          }
+        }, 1000);
+
+        console.log("连接状态监控已启动，定时器ID:", connectionStatusChecker);
+      }
+      // 添加完整的页面重置函数
+      function resetEntirePage() {
+        // 重置所有状态变量
+        isDeviceConnected = false;
+        lastPositionInfo = null;
+        selectedDevice = null;
+        // 停止扫描
+        if (isScanning) {
+          isScanning = false;
+          stopScan();
+        }
+        // 清空设备列表
+        const deviceList = document.getElementById("deviceList");
+        deviceList.innerHTML = "";
+        discoveredDevices.clear();
+
+        // 清空输入框
+        document.getElementById("corsUsername").value = "";
+        document.getElementById("corsPassword").value = "";
+
+        // 更新扫描状态显示
+        updateScanStatus();
+
+        // 添加日志
+        appendToResult("设备断开，页面已重置", "warning");
+      }
+      // 更新连接状态的函数
+      function updateConnectionStatus(connected) {
+        if (connected) {
+          appendToResult("设备已连接");
+        } else {
+          appendToResult("设备已断开");
+
+          // 如果断开连接时正在扫描，停止扫描
+          if (isScanning) {
+            stopScan();
+          }
+        }
+      }
       function updateScanStatus() {
         const statusDiv = document.getElementById("scanStatus");
         const startBtn = document.getElementById("startScanBtn");
@@ -267,7 +346,6 @@
         if (deviceElement) {
           deviceElement.classList.add("selected");
           selectedDevice = device;
-          document.getElementById("connectBtn").disabled = false;
         }
       }
 
@@ -288,8 +366,6 @@
                   isDeviceConnected = true;
                   appendToResult("检测到RTK数据，设备已连接");
                   // 更新按钮状态
-                  document.getElementById("disconnectBtn").disabled = false;
-                  document.getElementById("connectBtn").disabled = true;
                 }
                 appendToResult("获取设备信息成功");
                 try {
@@ -331,9 +407,6 @@
                   isDeviceConnected = true;
                   appendToResult("检测到位置信息，设备已连接");
                   appendToResult("开始接收位置信息...");
-                  // 更新按钮状态
-                  document.getElementById("disconnectBtn").disabled = false;
-                  document.getElementById("connectBtn").disabled = true;
                 }
                 // 更新位置信息
                 lastPositionInfo = result.data;
@@ -349,16 +422,14 @@
                 isDeviceConnected = false;
                 lastPositionInfo = null;
                 appendToResult("设备已断开，停止获取设备信息");
-                document.getElementById("disconnectBtn").disabled = true;
-                document.getElementById("connectBtn").disabled = false;
+                resetEntirePage();
                 break;
               case "connectionLoss":
                 isDeviceConnected = false;
                 lastPositionInfo = null;
                 appendToResult("警告: 连接丢失！");
                 appendToResult("请重新扫描连接设备");
-                document.getElementById("disconnectBtn").disabled = true;
-                document.getElementById("connectBtn").disabled = false;
+                resetEntirePage();
                 break;
             }
           },
@@ -411,8 +482,6 @@
                 `成功连接到设备: ${selectedDevice.name}`,
                 "success"
               );
-              document.getElementById("disconnectBtn").disabled = false;
-              document.getElementById("connectBtn").disabled = true;
             } else {
               appendToResult(`连接状态: ${result.type}`);
             }
@@ -448,6 +517,7 @@
               performDisconnect();
             }
           );
+          resetEntirePage();
         } else {
           // 如果没有账号信息，先尝试获取
           appendToResult("尝试获取设备账号信息...");
@@ -473,6 +543,7 @@
                   performDisconnect();
                 }
               );
+              resetEntirePage();
             } else {
               // 仍然没有获取到账号信息
               appendToResult("未能获取到账号信息，直接断开连接");
@@ -506,8 +577,6 @@
               isDeviceConnected = false;
               lastPositionInfo = null;
               appendToResult("设备已断开连接", "info");
-              document.getElementById("disconnectBtn").disabled = true;
-              document.getElementById("connectBtn").disabled = false;
 
               // 停止扫描并清理设备列表
               if (isScanning) {
@@ -529,11 +598,15 @@
         isDeviceConnected = false;
         lastPositionInfo = null;
         selectedDevice = null;
-        document.getElementById("disconnectBtn").disabled = true;
-        document.getElementById("connectBtn").disabled = true;
-        document.getElementById("startScanBtn").disabled = false;
-        document.getElementById("stopScanBtn").disabled = true;
         updateScanStatus();
+        // 清除连接状态监控定时器
+        if (connectionStatusChecker) {
+          clearInterval(connectionStatusChecker);
+          connectionStatusChecker = null;
+        }
+
+        // 重新启动监控
+        startConnectionStatusMonitor();
       }
       // 详细的日志函数
       function appendToResult(message) {
@@ -632,8 +705,6 @@
                 `成功连接到设备: ${selectedDevice.name}`,
                 "success"
               );
-              document.getElementById("disconnectBtn").disabled = false;
-              document.getElementById("connectBtn").disabled = true;
 
               // 连接成功后自动获取账号信息
               getCorsAccountInfo();
