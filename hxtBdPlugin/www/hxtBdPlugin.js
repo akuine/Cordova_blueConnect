@@ -85,7 +85,6 @@ var hxtBdPlugin = {
             errorCallback && errorCallback("扫描已在进行中");
             return;
         }
-
         this.isScanning = true;
         this.scanCallback = function (result) {
             console.log("JS层:收到扫描结果", result);
@@ -134,7 +133,7 @@ var hxtBdPlugin = {
                         console.log("JS层:连接丢失，更新连接状态为 false");
                         successCallback && successCallback(result);
                         break;
-
+                        
                     default:
                         successCallback && successCallback(result);
                 }
@@ -275,6 +274,29 @@ var hxtBdPlugin = {
             errorCallback,
             "hxtBdPlugin",
             "setCorsAccount",
+            [username, password]
+        );
+    },
+    setCorsAccount2: function (username, password, successCallback, errorCallback) {
+        if (!username || !password) {
+            errorCallback && errorCallback("用户名和密码不能为空");
+            return;
+        }
+        if (!this.isConnected) {
+            errorCallback && errorCallback("请先连接设备");
+            return;
+        }
+
+        exec(
+            function (result) {
+                successCallback && successCallback({
+                    type: "corsSet",
+                    data: result.data,
+                });
+            },
+            errorCallback,
+            "hxtBdPlugin",
+            "setCorsAccount2",
             [username, password]
         );
     },

@@ -27,10 +27,14 @@ public class BlueCorsUtils {
     private boolean isConnected = false;
     private String connectedDeviceName = null;
     private Set<String> discoveredDevices = new HashSet<>();
-    private static final String CORS_SERVER = "";
-    private static final String CORS_PORT = "";
-    private static final String CORS_FORMAT = "";
-    private static final String CORS_INTERVAL = "";
+    private static final String CORS_SERVER = "10.10.16.32"; // 使用实际的服务器地址
+    private static final String CORS_PORT = "2101";
+    private static final String CORS_FORMAT = "RTCM32_DBD";
+    private static final String CORS_INTERVAL = "1";
+    private static final String CORS_SERVER2 = ""; // 使用实际的服务器地址
+    private static final String CORS_PORT2 = "";
+    private static final String CORS_FORMAT2 = "";
+    private static final String CORS_INTERVAL2 = "";
 
     public BlueCorsUtils(Activity activity) {
         try {
@@ -190,6 +194,31 @@ public class BlueCorsUtils {
            throw e;
        }
    }
+   public synchronized void setCors2Rtk2(String userName, String keyword) {
+       try {
+           if (gBluetoothManageAdapter != null && isConnected) {
+               Log.d(TAG, "开始设置CORS账号, username=" + userName);
+               gBluetoothManageAdapter.setCors2RTK(
+                   CORS_SERVER2,
+                   CORS_PORT2,
+                   userName,
+                   keyword,
+                   CORS_FORMAT2,
+                   CORS_INTERVAL2
+               );
+               Log.d(TAG, "CORS账号设置已发送");
+           } else {
+               String error = gBluetoothManageAdapter == null ? 
+                   "蓝牙适配器未初始化" : "设备未连接";
+               Log.e(TAG, error);
+               throw new IllegalStateException(error);
+           }
+       } catch (Exception e) {
+           Log.e(TAG, "设置CORS账号错误: " + e.getMessage());
+           e.printStackTrace();
+           throw e;
+       }
+   }
 
    public boolean isConnected() {
        // 添加日志输出
@@ -265,6 +294,29 @@ public class BlueCorsUtils {
                     keyword,
                     CORS_FORMAT,
                     CORS_INTERVAL
+                );
+                Log.d(TAG, "设置CORS账号信息，用户: " + userName);
+            } else {
+                String error = isConnected ? "蓝牙适配器未初始化" : "设备未连接";
+                Log.e(TAG, error);
+                throw new IllegalStateException(error);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "设置CORS账号出错: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+    public void setCors2Rtk2(String userName, String keyword) {
+        try {
+            if (gBluetoothManageAdapter != null && isConnected) {
+                gBluetoothManageAdapter.setCors2RTK(
+                    CORS_SERVER2,
+                    CORS_PORT2,
+                    userName,
+                    keyword,
+                    CORS_FORMAT2,
+                    CORS_INTERVAL2
                 );
                 Log.d(TAG, "设置CORS账号信息，用户: " + userName);
             } else {

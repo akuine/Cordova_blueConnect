@@ -127,6 +127,35 @@ public class BlueConnectPlugin extends CordovaPlugin {
                     }
                 });
                 return true;
+            case "setCorsAccount2":
+                final String username2 = args.getString(0);
+                final String password2 = args.getString(1);
+                this.generalCallbackContext = callbackContext;
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        try {
+                            Log.d(TAG, "Native层: 开始设置CORS账号");
+                            if (blueCorsUtils != null) {
+                                // 添加连接状态检查
+                                if (blueCorsUtils.isConnected()) {
+                                    Log.d(TAG, "Native层: 正在设置CORS账号, username=" + username2);
+                                    blueCorsUtils.setCors2Rtk2(username2, password2);
+                                    sendSuccess(generalCallbackContext, "corsSet", "CORS账号设置成功");
+                                } else {
+                                    Log.e(TAG, "Native层: 设备未连接");
+                                    sendError(generalCallbackContext, "请先连接设备");
+                                }
+                            } else {
+                                Log.e(TAG, "Native层: blueCorsUtils未初始化");
+                                sendError(generalCallbackContext, "蓝牙工具未初始化");
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Native层: 设置CORS账号错误", e);
+                            sendError(generalCallbackContext, "设置CORS账号错误: " + e.getMessage());
+                        }
+                    }
+                });
+                return true;
             case "getCorsAccount":
                 this.generalCallbackContext = callbackContext;
                 getCorsAccount();
@@ -533,6 +562,21 @@ public class BlueConnectPlugin extends CordovaPlugin {
             if (blueCorsUtils != null) {
                 Log.d(TAG, "设置CORS账户, 用户名: " + username);
                 blueCorsUtils.setCors2Rtk(username, password);
+                sendSuccess(generalCallbackContext, "corsSet", "CORS账户设置成功");
+            } else {
+                Log.e(TAG, "蓝牙工具未初始化");
+                sendError(generalCallbackContext, "蓝牙工具未初始化");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "设置CORS账户错误: " + e.getMessage());
+            sendError(generalCallbackContext, "设置CORS账户错误: " + e.getMessage());
+        }
+    }
+    private void setCorsAccount2(String username, String password) {
+        try {
+            if (blueCorsUtils != null) {
+                Log.d(TAG, "设置CORS账户, 用户名: " + username);
+                blueCorsUtils.setCors2Rtk2(username, password);
                 sendSuccess(generalCallbackContext, "corsSet", "CORS账户设置成功");
             } else {
                 Log.e(TAG, "蓝牙工具未初始化");
